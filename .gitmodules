@@ -1,0 +1,6 @@
+[submodule "libs/libcimgui-sys"]
+	path = libs/libcimgui-sys
+	url = git@github.com:Velho/libcimgui-sys.git
+[submodule "libs/rust-sdl2"]
+	path = libs/rust-sdl2
+	url = https://github.com/Rust-SDL2/rust-sdl2
