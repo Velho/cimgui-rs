@@ -65,6 +65,8 @@ name = "cimgui-sys"
 version = "0.1.0"
 dependencies = [
  "bindgen",
+ "bitflags 2.3.3",
+ "sdl2",
 ]
 
 [[package]]
