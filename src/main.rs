@@ -1,5 +1,5 @@
-extern crate sdl2;
-extern crate cimgui_sys;
+// extern crate sdl2;
+// extern crate cimgui_sys;
 
 // use sdl2 dependencies
 use sdl2::event::Event;
@@ -10,7 +10,9 @@ use sdl2::rect::{Point, Rect};
 // use sdl2::sys::*;
 
 // use cimgui dependencies
-use cimgui_sys::*;
+use cimgui_sys::{IgContext, IgNavInputFlags, IgStyle, IgDrawData};
+use cimgui_sys::IgSDL2Renderer;
+use cimgui_sys::show_demo_window;
 
 fn main() -> Result<(), String> {
     // initialize sdl
@@ -31,68 +33,41 @@ fn main() -> Result<(), String> {
         .create_texture_target(PixelFormatEnum::RGBA8888, 400, 300)
         .map_err(|e| e.to_string())?;
 
-    let mut ig_context: *mut ImGuiContext = std::ptr::null_mut(); // main imgui context
+    let mut ig_context = IgContext::new();
+    ig_context.set_style(IgStyle::Dark);
+    ig_context.set_flags(IgNavInputFlags::NavEnableKeyboard);
 
-    unsafe { // ffi interface is unsafe as we need work directly with the c api
-        // initialize imgui
-        let shared_font_atlas: *mut ImFontAtlas = std::ptr::null_mut();
-        ig_context = igCreateContext(shared_font_atlas);
-        let mut io: *mut ImGuiIO = igGetIO();
-
-        // deref unsafe inherently
-        (*io).ConfigFlags |= ImGuiConfigFlags__ImGuiConfigFlags_NavEnableKeyboard;
-
-        // to set the imgui style, pointer to ImGuiStyle is required
-        // igStyleColorsLight(*mut ImGuiStyle)
-
-        let ig_style: *mut ImGuiStyle = igGetStyle();
-        igStyleColorsDark(ig_style);
-
-        // initialize backend
-        let _ret = ImGui_ImplSDL2_InitForSDLRenderer(canvas.window().raw() as *mut cimgui_sys::SDL_Window, canvas.raw() as *mut cimgui_sys::SDL_Renderer);
-        debug_assert!(true == _ret); // must be initialized
-
-        let _ret = ImGui_ImplSDLRenderer_Init(canvas.raw() as *mut cimgui_sys::SDL_Renderer);
-        debug_assert!(true == _ret); // must be initialized
-    }
-
+    let ig_renderer = IgSDL2Renderer::new(&mut canvas);
+    let mut event_pump = sdl_context.event_pump()?;
     let mut angle = 0.0;
 
     'mainloop: loop {
-
         // imgui event process ->
         // instead of calling the iterator to poll events
         // we'll call the SDL_PollEvent to get the raw event from SDL
-        unsafe {
-            let mut ll_event = std::mem::MaybeUninit::uninit();
-            while sdl2::sys::SDL_PollEvent(ll_event.as_mut_ptr()) == 1 {
-                // process imgui
-                let _ret = ImGui_ImplSDL2_ProcessEvent(ll_event.as_mut_ptr() as *mut SDL_Event);
+        // MaybeUninit is inherently unsafe so this requires some more thought how
+        // to handle properly the events. some sort of
 
-                let event = Event::from_ll(ll_event.assume_init());
-                match event {
-                    Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
-                    }
-                    | Event::Quit { .. } => break 'mainloop,
-                    _ => {}
+        for event in event_pump.poll_iter() {
+            ig_renderer.process_events(&event); // process imgui events
+
+            match event {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
                 }
-
-            } // poll events
+                | Event::Quit { .. } => break 'mainloop,
+                _ => {}
+            }
         }
 
-        unsafe {
-            ImGui_ImplSDLRenderer_NewFrame();
-            ImGui_ImplSDL2_NewFrame();
-
-            igNewFrame();
-        }
+        ig_renderer.new_frame(); // backend
+        ig_context.new_frame();
 
         // display demo window
         // ShowDemoWindow(true);
         let mut demo_window = true;
-        unsafe { igShowDemoWindow(&mut demo_window); }
+        show_demo_window(&mut demo_window);
 
         angle = (angle + 0.5) % 360.;
         canvas
@@ -117,22 +92,10 @@ fn main() -> Result<(), String> {
             false,
         )?;
 
-        // ImGui::Render();
-        // ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-
-        unsafe {
-        igRender();
-        ImGui_ImplSDLRenderer_RenderDrawData(igGetDrawData());
-        }
+        ig_context.render();
+        ig_renderer.render_draw_data(IgDrawData::get());
 
         canvas.present();
-    }
-
-    // clean imgui
-    unsafe {
-        ImGui_ImplSDLRenderer_Shutdown();
-        ImGui_ImplSDL2_Shutdown();
-        igDestroyContext(ig_context);
     }
 
     Ok(())
