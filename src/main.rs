@@ -49,7 +49,7 @@ fn main() -> Result<(), String> {
         // to handle properly the events. some sort of
 
         for event in event_pump.poll_iter() {
-            ig_renderer.process_events(&event); // process imgui events
+            ig_renderer.process_events(Some(&event)); // process imgui events
 
             match event {
                 Event::KeyDown {
