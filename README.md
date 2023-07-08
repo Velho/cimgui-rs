@@ -27,4 +27,6 @@ The project sample requires a lot of unsafe blocks as it directly calls the ffi.
 
 ## TODO
 
-* Rust friendly structures over the FFI
+* ~~Rust friendly structures over the FFI~~
+* Make powershell script to download and install SDL2
+  * Use the _cargo rustc -- --print sysroot_ to get the path where to put libs
